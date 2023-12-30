@@ -95,11 +95,12 @@ if [[ -z ${ANDROID_NDK:-} ]]; then
     ANDROID_NDK=~/Android/android-ndk/
 fi
 export ANDROID_NDK
-export ANDROID_BIN="$ANDROID_NDK/toolchains/llvm/prebuilt/$KERNEL-$ARCH/"
+export ANDROID_BIN="$ANDROID_NDK/toolchains/llvm/prebuilt/$KERNEL-$ARCH"
 export ANDROID_CC="$ANDROID_NDK/toolchains/llvm/prebuilt/$KERNEL-$ARCH/bin/clang"
-export ANDROID_CPP="$ANDROID_NDK/sources/cxx-stl/llvm-libc++/"
+#export ANDROID_CPP="$ANDROID_NDK/sources/cxx-stl/llvm-libc++/"
+export ANDROID_CPP="$ANDROID_BIN/sysroot/usr"
 export ANDROID_PREFIX="$ANDROID_BIN/bin/llvm"
-export ANDROID_ROOT=
+export ANDROID_ROOT="$ANDROID_BIN/sysroot"
 case $PLATFORM in
     android-arm)
         export ANDROID_FLAGS="-DANDROID -fPIC -ffunction-sections -funwind-tables -fstack-protector-strong -target armv7a-linux-android24 -march=armv7-a -mfloat-abi=softfp -mfpu=vfpv3-d16 -z text -Wno-unused-command-line-argument -Wno-unknown-warning-option -Wno-ignored-optimization-argument -Wl,--fix-cortex-a8 -Wl,--no-undefined -nostdlib++"

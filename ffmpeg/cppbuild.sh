@@ -8,7 +8,7 @@ if [[ -z "$PLATFORM" ]]; then
 fi
 
 DISABLE="--disable-iconv --disable-opencl --disable-sdl2 --disable-bzlib --disable-lzma --disable-linux-perf --disable-xlib"
-ENABLE="--enable-shared --enable-version3 --enable-runtime-cpudetect --enable-vulkan --enable-hwaccel=h264_vulkan --enable-hwaccel=hevc_vulkan --enable-hwaccel=av1_vulkan --enable-zlib --enable-libmp3lame --enable-libspeex --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libvo-amrwbenc --enable-openssl --enable-libopenh264 --enable-libvpx --enable-libfreetype --enable-libopus --enable-libxml2 --enable-libsrt --enable-libwebp --enable-libaom --enable-libsvtav1"
+ENABLE="--enable-shared --enable-version3 --enable-runtime-cpudetect --enable-zlib --enable-libmp3lame --enable-libspeex --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libvo-amrwbenc --enable-openssl --enable-libopenh264 --enable-libvpx --enable-libfreetype --enable-libopus --enable-libxml2 --enable-libsrt --enable-libwebp --enable-libaom --enable-libsvtav1 --enable-vulkan --enable-hwaccel=h264_vulkan --enable-hwaccel=hevc_vulkan --enable-hwaccel=av1_vulkan"
 
 if [[ "$EXTENSION" == *gpl ]]; then
     # Enable GPLv3 modules
@@ -33,7 +33,7 @@ OPUS=opus-1.3.1
 OPENCORE_AMR=opencore-amr-0.1.6
 VO_AMRWBENC=vo-amrwbenc-0.1.3
 OPENSSL=openssl-3.1.4
-OPENH264_VERSION=2.3.1
+OPENH264_VERSION=2.4.0
 X264=x264-stable
 X265=3.4
 VPX_VERSION=1.13.1
@@ -111,8 +111,11 @@ cd ..
 export PATH=$INSTALL_PATH/bin:$PATH
 export PKG_CONFIG_PATH=$INSTALL_PATH/lib/pkgconfig/
 
+export VULKAN_SDK=$ANDROID_CPP
+export Vulkan_INCLUDE_DIR=$ANDROID_CPP/include/vulkan
+
 patch -Np1 -d $LAME < ../../lame.patch
-patch -Np1 -d $OPENSSL < ../../openssl-android.patch
+patch -Np1 -d $OPENSSL < ../../openssl-android3.patch
 patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../ffmpeg.patch
 # patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../ffmpeg-flv-support-hevc-opus.patch
 sedinplace 's/bool bEnableavx512/bool bEnableavx512 = false/g' x265-*/source/common/param.h
@@ -263,6 +266,11 @@ EOF
         make install
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
+        echo ""
+        echo "--------------------"
+        echo "Building ffmpeg"
+        echo "--------------------"
+        echo ""
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
         LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=arm --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
@@ -408,6 +416,11 @@ EOF
         make install
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
+        echo ""
+        echo "--------------------"
+        echo "Building ffmpeg"
+        echo "--------------------"
+        echo ""
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
         LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=aarch64 --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
@@ -471,38 +484,110 @@ EOF
         ./configure --prefix=$INSTALL_PATH --disable-shared --with-pic --host=i686-linux
         make -j $MAKEJ V=0
         make install
+
+        echo "--------------------"
+        echo "Debug Information"
+        echo "--------------------"
+        echo "ANDROID_NDK: $ANDROID_NDK"
+        echo "ANDROID_ROOT: $ANDROID_ROOT"
+        echo "Contents of ANDROID_NDK directory:"
+        ls -l $ANDROID_NDK
+        echo "Contents of ANDROID_ROOT directory:"
+        ls -l $ANDROID_ROOT
+        echo ""
+
+
+        echo ""
+        echo "--------------------"
+        echo "Building OPENSSL"
+        echo "--------------------"
+        echo ""
         cd ../$OPENSSL
+
+        #PATH="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+        #./Configure --prefix=$INSTALL_PATH --libdir=lib android-x86 no-shared no-tests -D__ANDROID_API__=24
+        #ANDROID_DEV="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr" make -s -j $MAKEJ
+#
+        #$CMAKE -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+        #       -DANDROID_ABI=x86 \
+        #       -DANDROID_NATIVE_API_LEVEL=24 \
+        #       -DANDROIDAPI=24 \
+        #       -DANDROID_PLATFORM=android-24 \
+        #       -DANDROID_NDK_PLATFORM=android-24 \
+        #       -DCMAKE_C_FLAGS="-I$INSTALL_PATH/include/" \
+        #       -DCMAKE_CXX_FLAGS="-I$INSTALL_PATH/include/" \
+        #       -DCMAKE_EXE_LINKER_FLAGS="-L$INSTALL_PATH/lib/" \
+        #       -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH \
+        #       $SRT_CONFIG .
+
         PATH="${ANDROID_CC%/*}:$ANDROID_BIN/bin:$PATH" ./Configure --prefix=$INSTALL_PATH --libdir=lib android-x86 no-shared no-tests -D__ANDROID_API__=24
         ANDROID_DEV="$ANDROID_ROOT/usr" make -s -j $MAKEJ
         make install_dev
+
+
+        echo ""
+        echo "--------------------"
+        echo "Building LIBSRT"
+        echo "--------------------"
+        echo ""
         cd ../srt-$LIBSRT_VERSION
         patch -Np1 < ../../../srt-android.patch || true
-        $CMAKE -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86 -DANDROID_NATIVE_API_LEVEL=24 -DCMAKE_C_FLAGS="-I$INSTALL_PATH/include/" -DCMAKE_CXX_FLAGS="-I$INSTALL_PATH/include/" -DCMAKE_EXE_LINKER_FLAGS="-L$INSTALL_PATH/lib/" -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $SRT_CONFIG .
+        $CMAKE -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86 -DANDROID_NATIVE_API_LEVEL=24 -DCMAKE_C_FLAGS="-I$ANDROID_CPP/include/ -I$INSTALL_PATH/include/" -DCMAKE_CXX_FLAGS="-I$INSTALL_PATH/include/" -DCMAKE_EXE_LINKER_FLAGS="-L$INSTALL_PATH/lib/" -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $SRT_CONFIG .
         make -j $MAKEJ V=0
         make install
+        echo ""
+        echo "--------------------"
+        echo "Building openh264"
+        echo "--------------------"
+        echo ""
         cd ../openh264-$OPENH264_VERSION
         sedinplace 's/stlport_shared/system/g' codec/build/android/dec/jni/Application.mk build/platform-android.mk
         sedinplace 's/12/24/g' codec/build/android/dec/jni/Application.mk build/platform-android.mk
-        CFLAGS="$ANDROID_FLAGS" LDFLAGS="$ANDROID_FLAGS" make -j $MAKEJ PREFIX=$INSTALL_PATH OS=android ARCH=x86 USE_ASM=No NDKROOT="$ANDROID_NDK" NDK_TOOLCHAIN_VERSION="clang" TARGET="android-24" install-static
+        CFLAGS="-I$ANDROID_CPP/include/ -I$ANDROID_CPP/include/i686-linux-android/ $ANDROID_FLAGS" LDFLAGS="$ANDROID_FLAGS" make -j $MAKEJ PREFIX=$INSTALL_PATH OS=android ARCH=x86 USE_ASM=No NDKROOT="$ANDROID_NDK" NDK_TOOLCHAIN_VERSION="clang" TARGET="android-24" install-static
+        echo ""
+        echo "--------------------"
+        echo "Building X264"
+        echo "--------------------"
+        echo ""
         cd ../$X264
         patch -Np1 < ../../../x264-android.patch || true
         ./configure --prefix=$INSTALL_PATH --enable-static --enable-pic --disable-cli --cross-prefix="$ANDROID_PREFIX-" --sysroot="$ANDROID_ROOT" --host=i686-linux --disable-asm
         make -j $MAKEJ V=0
         make install
+        echo ""
+        echo "--------------------"
+        echo "Building x265"
+        echo "--------------------"
+        echo ""
         cd ../x265-$X265
         patch -Np1 < ../../../x265-android.patch || true
         cd build/linux
         # from x265 multilib.sh
         mkdir -p 8bit 10bit 12bit
 
+        echo ""
+        echo "--------------------"
+        echo "Building 12bit"
+        echo "--------------------"
+        echo ""
         cd 12bit
         $CMAKE ../../../source -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86 -DANDROID_NATIVE_API_LEVEL=24 -DHIGH_BIT_DEPTH=ON -DEXPORT_C_API=OFF -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=OFF -DMAIN12=ON -DENABLE_LIBNUMA=OFF -DCMAKE_BUILD_TYPE=Release -DNASM_EXECUTABLE:FILEPATH=$INSTALL_PATH/bin/nasm
         make -j $MAKEJ
 
+        echo ""
+        echo "--------------------"
+        echo "Building 10bit"
+        echo "--------------------"
+        echo ""
         cd ../10bit
         $CMAKE ../../../source -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86 -DANDROID_NATIVE_API_LEVEL=24 -DHIGH_BIT_DEPTH=ON -DEXPORT_C_API=OFF -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=OFF -DENABLE_LIBNUMA=OFF -DCMAKE_BUILD_TYPE=Release -DNASM_EXECUTABLE:FILEPATH=$INSTALL_PATH/bin/nasm
         make -j $MAKEJ
 
+        echo ""
+        echo "--------------------"
+        echo "Building 8bit"
+        echo "--------------------"
+        echo ""
         cd ../8bit
         ln -sf ../10bit/libx265.a libx265_main10.a
         ln -sf ../12bit/libx265.a libx265_main12.a
@@ -522,6 +607,11 @@ EOF
         make install
         # ----
         cd ../../../
+        echo ""
+        echo "--------------------"
+        echo "Building libvpx"
+        echo "--------------------"
+        echo ""
         cd ../libvpx-$VPX_VERSION
         patch -Np1 < ../../../libvpx-android.patch
         CFLAGS="$ANDROID_FLAGS" CXXFLAGS="$ANDROID_FLAGS" LDFLAGS="$ANDROID_FLAGS" ./configure --prefix=$INSTALL_PATH --enable-static --enable-pic --disable-examples --disable-unit-tests --disable-tools --target=x86-android-gcc --as=nasm
@@ -535,6 +625,11 @@ EOF
         ./configure --prefix=$INSTALL_PATH --with-bzip2=no --with-harfbuzz=no --with-png=no --with-brotli=no --enable-static --disable-shared --with-pic --host=i686-linux
         make -j $MAKEJ
         make install
+        echo ""
+        echo "--------------------"
+        echo "Building libaom"
+        echo "--------------------"
+        echo ""
         cd ../libaom-$AOMAV1_VERSION
         mkdir -p build_release
         cd build_release
@@ -550,8 +645,14 @@ EOF
         make install
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
+        echo ""
+        echo "--------------------"
+        echo "Building ffmpeg"
+        echo "--------------------"
+        echo ""
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
+        sedinplace 's/VK_HEADER_VERSION >= 255/VK_HEADER_VERSION >= 237/g' configure
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 -I$ANDROID_NDK/sources/third_party/vulkan/src/include $ANDROID_FLAGS" --extra-ldflags="-L../lib/ -L$ANDROID_CPP/lib/i686-linux-android/24/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -613,37 +714,117 @@ EOF
         ./configure --prefix=$INSTALL_PATH --disable-shared --with-pic --host=x86_64-linux
         make -j $MAKEJ V=0
         make install
+
+
+        echo "--------------------"
+        echo "Debug Information"
+        echo "--------------------"
+        echo "ANDROID_NDK: $ANDROID_NDK"
+        echo "ANDROID_ROOT: $ANDROID_ROOT"
+        echo "ANDROID_BIN: $ANDROID_BIN"
+        echo "Contents of ANDROID_NDK directory:"
+        ls -l $ANDROID_NDK
+        echo "Contents of ANDROID_ROOT directory:"
+        ls -l $ANDROID_ROOT
+        echo "Contents of ANDROID_BIN directory:"
+        ls -l $ANDROID_BIN
+        echo ""
+
+
+        echo ""
+        echo "--------------------"
+        echo "Building OPENSSL"
+        echo "--------------------"
+        echo ""
+
         cd ../$OPENSSL
-        PATH="${ANDROID_CC%/*}:$ANDROID_BIN/bin:$PATH" ./Configure --prefix=$INSTALL_PATH --libdir=lib android-x86_64 no-shared no-tests -D__ANDROID_API__=24
+
+        #PATH="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
+        #./Configure --prefix=$INSTALL_PATH --libdir=lib android-x86_64 no-shared no-tests -D__ANDROID_API__=24
+        #ANDROID_DEV="$ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr" make -s -j $MAKEJ
+#
+        #$CMAKE -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+        #       -DANDROID_ABI=x86_64 \
+        #       -DANDROID_NATIVE_API_LEVEL=24 \
+        #       -DANDROIDAPI=24 \
+        #       -DANDROID_PLATFORM=android-24 \
+        #       -DANDROID_NDK_PLATFORM=android-24 \
+        #       -DCMAKE_C_FLAGS="-I$INSTALL_PATH/include/" \
+        #       -DCMAKE_CXX_FLAGS="-I$INSTALL_PATH/include/" \
+        #       -DCMAKE_EXE_LINKER_FLAGS="-L$INSTALL_PATH/lib/" \
+        #       -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH \
+        #       $SRT_CONFIG .
+
+        PATH="${ANDROID_CC%/*}:$ANDROID_BIN/bin:$PATH"
+        for p in ${PATH//:/ }; do
+            echo $p
+        done
+        ./Configure --prefix=$INSTALL_PATH --libdir=lib android-x86_64 no-shared no-tests -D__ANDROID_API__=24
         ANDROID_DEV="$ANDROID_ROOT/usr" make -s -j $MAKEJ
         make install_dev
+
+        echo ""
+        echo "--------------------"
+        echo "Building LIBSRT"
+        echo "--------------------"
+        echo ""
         cd ../srt-$LIBSRT_VERSION
         patch -Np1 < ../../../srt-android.patch || true
-        $CMAKE -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64 -DANDROID_NATIVE_API_LEVEL=24 -DCMAKE_C_FLAGS="-I$INSTALL_PATH/include/" -DCMAKE_CXX_FLAGS="-I$INSTALL_PATH/include/" -DCMAKE_EXE_LINKER_FLAGS="-L$INSTALL_PATH/lib/" -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $SRT_CONFIG .
+        $CMAKE -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64 -DANDROID_NATIVE_API_LEVEL=24 -DCMAKE_C_FLAGS="-I$ANDROID_CPP/include/ -I$INSTALL_PATH/include/" -DCMAKE_CXX_FLAGS="-I$INSTALL_PATH/include/" -DCMAKE_EXE_LINKER_FLAGS="-L$INSTALL_PATH/lib/" -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $SRT_CONFIG .
         make -j $MAKEJ V=0
         make install
+        echo ""
+        echo "--------------------"
+        echo "Building openh264"
+        echo "--------------------"
+        echo ""
         cd ../openh264-$OPENH264_VERSION
         sedinplace 's/stlport_shared/system/g' codec/build/android/dec/jni/Application.mk build/platform-android.mk
         sedinplace 's/12/24/g' codec/build/android/dec/jni/Application.mk build/platform-android.mk
-        CFLAGS="$ANDROID_FLAGS" LDFLAGS="$ANDROID_FLAGS" make -j $MAKEJ PREFIX=$INSTALL_PATH OS=android ARCH=x86_64 USE_ASM=No NDKROOT="$ANDROID_NDK" NDK_TOOLCHAIN_VERSION="clang" TARGET="android-24" install-static
+        CFLAGS="-I$ANDROID_CPP/include/ -I$ANDROID_CPP/include/x86_64-linux-android/ $ANDROID_FLAGS" LDFLAGS="$ANDROID_FLAGS" make -j $MAKEJ PREFIX=$INSTALL_PATH OS=android ARCH=x86_64 USE_ASM=No NDKROOT="$ANDROID_NDK" NDK_TOOLCHAIN_VERSION="clang" TARGET="android-24" install-static
+        echo ""
+        echo "--------------------"
+        echo "Building X264"
+        echo "--------------------"
+        echo ""
         cd ../$X264
         ./configure --prefix=$INSTALL_PATH --enable-static --enable-pic --disable-cli --cross-prefix="$ANDROID_PREFIX-" --sysroot="$ANDROID_ROOT" --host=x86_64-linux
         make -j $MAKEJ V=0
         make install
+        echo ""
+        echo "--------------------"
+        echo "Building x265"
+        echo "--------------------"
+        echo ""
         cd ../x265-$X265
         patch -Np1 < ../../../x265-android.patch || true
         cd build/linux
         # from x265 multilib.sh
         mkdir -p 8bit 10bit 12bit
 
+        echo ""
+        echo "--------------------"
+        echo "Building 12bit"
+        echo "--------------------"
+        echo ""
         cd 12bit
         $CMAKE ../../../source -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64 -DANDROID_NATIVE_API_LEVEL=24 -DHIGH_BIT_DEPTH=ON -DEXPORT_C_API=OFF -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DMAIN12=ON -DENABLE_LIBNUMA=OFF -DCMAKE_BUILD_TYPE=Release -DNASM_EXECUTABLE:FILEPATH=$INSTALL_PATH/bin/nasm
         make -j $MAKEJ
 
+        echo ""
+        echo "--------------------"
+        echo "Building 10bit"
+        echo "--------------------"
+        echo ""
         cd ../10bit
         $CMAKE ../../../source -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64 -DANDROID_NATIVE_API_LEVEL=24 -DHIGH_BIT_DEPTH=ON -DEXPORT_C_API=OFF -DENABLE_SHARED=OFF -DENABLE_CLI=OFF -DENABLE_LIBNUMA=OFF -DCMAKE_BUILD_TYPE=Release -DNASM_EXECUTABLE:FILEPATH=$INSTALL_PATH/bin/nasm
         make -j $MAKEJ
 
+        echo ""
+        echo "--------------------"
+        echo "Building 8bit"
+        echo "--------------------"
+        echo ""
         cd ../8bit
         ln -sf ../10bit/libx265.a libx265_main10.a
         ln -sf ../12bit/libx265.a libx265_main12.a
@@ -663,6 +844,11 @@ EOF
         make install
         # ----
         cd ../../../
+        echo ""
+        echo "--------------------"
+        echo "Building libvpx"
+        echo "--------------------"
+        echo ""
         cd ../libvpx-$VPX_VERSION
         patch -Np1 < ../../../libvpx-android.patch
         CFLAGS="$ANDROID_FLAGS" CXXFLAGS="$ANDROID_FLAGS" LDFLAGS="$ANDROID_FLAGS" ./configure --prefix=$INSTALL_PATH --enable-static --enable-pic --disable-examples --disable-unit-tests --disable-tools --target=x86_64-android-gcc --as=nasm
@@ -676,6 +862,11 @@ EOF
         ./configure --prefix=$INSTALL_PATH --with-bzip2=no --with-harfbuzz=no --with-png=no --with-brotli=no --enable-static --disable-shared --with-pic --host=x86_64-linux
         make -j $MAKEJ
         make install
+        echo ""
+        echo "--------------------"
+        echo "Building libaom"
+        echo "--------------------"
+        echo ""
         cd ../libaom-$AOMAV1_VERSION
         mkdir -p build_release
         cd build_release
@@ -691,8 +882,14 @@ EOF
         make install
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
+        echo ""
+        echo "--------------------"
+        echo "Building ffmpeg"
+        echo "--------------------"
+        echo ""
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
+        sedinplace 's/VK_HEADER_VERSION >= 255/VK_HEADER_VERSION >= 237/g' configure
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 -I$ANDROID_NDK/sources/third_party/vulkan/src/include $ANDROID_FLAGS" --extra-ldflags="-L../lib/ -L$ANDROID_CPP/lib/x86_64-linux-android/24/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -831,7 +1028,7 @@ EOF
         make install
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --cc="gcc -m32 -D__ILP32__" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --cc="gcc -m32 -D__ILP32__" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -971,7 +1168,7 @@ EOF
         make install
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --cc="gcc -m64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --cc="gcc -m64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
