@@ -112,6 +112,10 @@ cd ..
 export PATH=$INSTALL_PATH/bin:$PATH
 export PKG_CONFIG_PATH=$INSTALL_PATH/lib/pkgconfig/
 
+export VULKAN_SDK=/usr
+export Vulkan_INCLUDE_DIR=/usr/include/vulkan
+export Vulkan_LIBRARY=/usr/lib/x86_64-linux-gnu/libvulkan.so
+
 patch -Np1 -d $LAME < ../../lame.patch
 patch -Np1 -d $OPENSSL < ../../openssl-android.patch
 patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../ffmpeg.patch
@@ -265,7 +269,7 @@ EOF
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=arm --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=arm --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -410,7 +414,7 @@ EOF
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=aarch64 --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=aarch64 --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -472,6 +476,24 @@ EOF
         ./configure --prefix=$INSTALL_PATH --disable-shared --with-pic --host=i686-linux
         make -j $MAKEJ V=0
         make install
+
+        echo "--------------------"
+        echo "Debug Information"
+        echo "--------------------"
+        echo "ANDROID_NDK: $ANDROID_NDK"
+        echo "ANDROID_ROOT: $ANDROID_ROOT"
+        echo "Contents of ANDROID_NDK directory:"
+        ls -l $ANDROID_NDK
+        echo "Contents of ANDROID_ROOT directory:"
+        ls -l $ANDROID_ROOT
+        echo ""
+
+
+        echo ""
+        echo "--------------------"
+        echo "Building OPENSSL"
+        echo "--------------------"
+        echo ""
         cd ../$OPENSSL
         PATH="${ANDROID_CC%/*}:$ANDROID_BIN/bin:$PATH" ./Configure --prefix=$INSTALL_PATH --libdir=lib android-x86 no-shared no-tests -D__ANDROID_API__=24
         ANDROID_DEV="$ANDROID_ROOT/usr" make -s -j $MAKEJ
@@ -552,7 +574,7 @@ EOF
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I/usr/include/vulkan/ -I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ -L/usr/lib/x86_64-linux-gnu/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -693,7 +715,7 @@ EOF
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I/usr/include/vulkan/ -I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ -L/usr/lib/x86_64-linux-gnu/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
