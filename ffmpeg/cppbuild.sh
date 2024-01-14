@@ -112,9 +112,9 @@ cd ..
 export PATH=$INSTALL_PATH/bin:$PATH
 export PKG_CONFIG_PATH=$INSTALL_PATH/lib/pkgconfig/
 
-export VULKAN_SDK=/usr
-export Vulkan_INCLUDE_DIR=/usr/include/vulkan
-export Vulkan_LIBRARY=/usr/lib/x86_64-linux-gnu/libvulkan.so
+echo "content of ANDROID_ROOT: $ANDROID_ROOT"
+export VULKAN_SDK=$ANDROID_ROOT/usr
+export Vulkan_INCLUDE_DIR=$ANDROID_ROOT/usr/include/vulkan
 
 patch -Np1 -d $LAME < ../../lame.patch
 patch -Np1 -d $OPENSSL < ../../openssl-android.patch
@@ -134,6 +134,7 @@ case $PLATFORM in
         export CC="$ANDROID_CC $ANDROID_FLAGS"
         export CXX="$ANDROID_CC++ $ANDROID_FLAGS"
         export STRIP="$ANDROID_PREFIX-strip"
+        export Vulkan_LIBRARY=$ANDROID_ROOT/usr/lib/arm-linux-androideabi/24/libvulkan.so
         echo ""
         echo "--------------------"
         echo "Building zlib"
@@ -285,6 +286,7 @@ EOF
         export CC="$ANDROID_CC $ANDROID_FLAGS"
         export CXX="$ANDROID_CC++ $ANDROID_FLAGS"
         export STRIP="$ANDROID_PREFIX-strip"
+        export Vulkan_LIBRARY=$ANDROID_ROOT/usr/lib/aarch64-linux-android/24/libvulkan.so
         echo ""
         echo "--------------------"
         echo "Building zlib"
@@ -435,6 +437,7 @@ EOF
         export CC="$ANDROID_CC $ANDROID_FLAGS"
         export CXX="$ANDROID_CC++ $ANDROID_FLAGS"
         export STRIP="$ANDROID_PREFIX-strip"
+        export Vulkan_LIBRARY=$ANDROID_ROOT/usr/lib/i686-linux-android/24/libvulkan.so
         echo ""
         echo "--------------------"
         echo "Building zlib"
@@ -600,6 +603,7 @@ EOF
         export CC="$ANDROID_CC $ANDROID_FLAGS"
         export CXX="$ANDROID_CC++ $ANDROID_FLAGS"
         export STRIP="$ANDROID_PREFIX-strip"
+        export Vulkan_LIBRARY=$ANDROID_ROOT/usr/lib/x86_64-linux-android/24/libvulkan.so
         echo ""
         echo "--------------------"
         echo "Building zlib"
