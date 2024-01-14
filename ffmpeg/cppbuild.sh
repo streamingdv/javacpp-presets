@@ -739,7 +739,7 @@ EOF
         echo "--------------------"
         echo ""
         sedinplace 's/unsigned long int/unsigned int/g' libavdevice/v4l2.c
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I/usr/include/vulkan/ -I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ -L/usr/lib/x86_64-linux-gnu/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic -L/usr/lib/x86_64-linux-gnu/ -lvulkan" --disable-symver || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-jni --enable-mediacodec --enable-pthreads --enable-cross-compile --cross-prefix="$ANDROID_PREFIX-" --ar="$AR" --ranlib="$RANLIB" --cc="$CC" --strip="$STRIP" --sysroot="$ANDROID_ROOT" --target-os=android --arch=atom --extra-cflags="-I/usr/include/vulkan/ -I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1 $ANDROID_FLAGS" --extra-ldflags="-L../lib/ -L/usr/lib/x86_64-linux-gnu/ $ANDROID_FLAGS" --extra-libs="$ANDROID_LIBS -lz -latomic -L/usr/lib/x86_64-linux-gnu/" --disable-symver || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
