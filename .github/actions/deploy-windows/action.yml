@@ -317,6 +317,12 @@ runs:
         df -h
         wmic pagefile list /format:list
 
+    - name: Upload artefacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: maven-artefacts
+        path: %USERPROFILE%/.m2
+
     - name: Clean up
       shell: cmd
       run: |

@@ -343,6 +343,12 @@ runs:
         fi
         df -h
 
+    - name: Upload artefacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: maven-artefacts
+        path: $HOME/.m2
+
     - name: Clean up
       shell: bash
       run: |
