@@ -25,6 +25,7 @@ jobs:
         ext: [""]
     steps:
       - uses: streamingdv/javacpp-presets/.github/actions/deploy-ubuntu@manual_ffmepg_build
+
   windows-x86_64:
     runs-on: windows-2019
     strategy:
