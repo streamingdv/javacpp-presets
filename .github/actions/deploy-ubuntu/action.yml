@@ -346,8 +346,8 @@ runs:
     - name: Upload artefacts
       uses: actions/upload-artifact@v4
       with:
-        name: maven-artefacts
-        path: $HOME/.m2
+        name: maven-artefacts-linux
+        path: ${{ env.HOME }}/.m2
 
     - name: Clean up
       shell: bash
