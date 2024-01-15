@@ -135,8 +135,9 @@ sudo mkdir -p "$LINK_DIR"
 sudo chown $USER:$USER "$LINK_DIR"
 # Create symbolic links for all directories except 'openssl'
 for dir in $TARGET_DIR/*; do
-    if [ "$dir" != "$TARGET_DIR/openssl" ]; then
-        ln -s "$dir" "$LINK_DIR/"
+    link_name="$LINK_DIR/$(basename "$dir")"
+    if [ "$dir" != "$TARGET_DIR/openssl" ] && [ ! -e "$link_name" ]; then
+        ln -s "$dir" "$link_name"
     fi
 done
 
