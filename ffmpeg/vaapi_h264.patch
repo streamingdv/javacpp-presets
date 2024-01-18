@@ -1,0 +1,38 @@
+diff --git a/libavcodec/vaapi_h264.c b/libavcodec/vaapi_h264.c
+index 55cf5a05ee..c935c88bad 100644
+--- a/libavcodec/vaapi_h264.c
++++ b/libavcodec/vaapi_h264.c
+@@ -128,6 +128,8 @@ static int fill_vaapi_ReferenceFrames(VAPictureParameterBufferH264 *pic_param,
+     DPB dpb;
+     int i;
+ 
++    const H264Picture *pic_good = NULL;
++
+     dpb.size     = 0;
+     dpb.max_size = FF_ARRAY_ELEMS(pic_param->ReferenceFrames);
+     dpb.va_pics  = pic_param->ReferenceFrames;
+@@ -136,7 +138,23 @@ static int fill_vaapi_ReferenceFrames(VAPictureParameterBufferH264 *pic_param,
+ 
+     for (i = 0; i < h->short_ref_count; i++) {
+         const H264Picture *pic = h->short_ref[i];
+-        if (pic && pic->reference && dpb_add(&dpb, pic) < 0)
++        if (!pic || !pic->reference)
++            continue;
++        if (pic->recovered) {
++            pic_good = pic;
++        } else {
++            if (pic_good) {
++                pic = pic_good;
++            } else {
++                for (int i = 0; i < h->short_ref_count; i++) {
++                    if (h->short_ref[i] && h->short_ref[i]->reference && h->short_ref[i]->recovered) {
++                        pic = h->short_ref[i];
++                        break;
++                    }
++                }
++            }
++        }
++        if (dpb_add(&dpb, pic) < 0)
+             return -1;
+     }
+ 

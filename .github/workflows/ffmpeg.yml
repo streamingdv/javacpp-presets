@@ -24,7 +24,7 @@ jobs:
       matrix:
         ext: [""]
     steps:
-      - uses: treamingdv/javacpp-presets/.github/actions/deploy-ubuntu@manual_ffmepg_build
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-ubuntu@manual_ffmepg_build
   linux-x86_64:
     runs-on: ubuntu-20.04
     strategy:
@@ -36,7 +36,7 @@ jobs:
     runs-on: windows-2019
     strategy:
       matrix:
-        ext: ["", -gpl]
+        ext: [""]
     steps:
       - uses: streamingdv/javacpp-presets/.github/actions/deploy-windows@manual_ffmepg_build
   windows-x86_64:
