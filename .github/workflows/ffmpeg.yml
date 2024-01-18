@@ -18,6 +18,13 @@ env:
   CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
   STAGING_REPOSITORY: ${{ secrets.STAGING_REPOSITORY }}
 jobs:
+  linux-x86:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        ext: [""]
+    steps:
+      - uses: treamingdv/javacpp-presets/.github/actions/deploy-ubuntu@manual_ffmepg_build
   linux-x86_64:
     runs-on: ubuntu-20.04
     strategy:
@@ -25,7 +32,13 @@ jobs:
         ext: [""]
     steps:
       - uses: streamingdv/javacpp-presets/.github/actions/deploy-ubuntu@manual_ffmepg_build
-
+  windows-x86:
+    runs-on: windows-2019
+    strategy:
+      matrix:
+        ext: ["", -gpl]
+    steps:
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-windows@manual_ffmepg_build
   windows-x86_64:
     runs-on: windows-2019
     strategy:
