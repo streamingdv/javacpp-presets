@@ -3,115 +3,69 @@ on:
   push:
     paths:
       - ffmpeg/**
+      - .github/actions/**
       - .github/workflows/ffmpeg.yml
   pull_request:
     paths:
       - ffmpeg/**
+      - .github/actions/**
       - .github/workflows/ffmpeg.yml
   workflow_dispatch:
 env:
   CI_DEPLOY_NEED_GCC: 1
   CI_DEPLOY_MODULE: ${{ github.workflow }}
   CI_DEPLOY_PLATFORM: ${{ github.job }}
-  CI_DEPLOY_SETTINGS: ${{ secrets.CI_DEPLOY_SETTINGS }}
-  CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
-  CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
-  STAGING_REPOSITORY: ${{ secrets.STAGING_REPOSITORY }}
 jobs:
-#  android-arm:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: ["", -gpl]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  android-arm64:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        ext: ["", -gpl]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  android-x86:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: ["", -gpl]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  android-x86_64:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        ext: ["", -gpl]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  linux-armhf:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: ["", -gpl]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-  linux-arm64:
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        ext: ["", -gpl]
-    steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  linux-ppc64le:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: ["", -gpl]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
-#  linux-x86:
-#    runs-on: ubuntu-22.04
-#    strategy:
-#      matrix:
-#        ext: ["", -gpl]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
   linux-x86_64:
     runs-on: ubuntu-22.04
+    # Built inside focal so the shared objects keep loading on Ubuntu 20.04 (glibc 2.31)
+    container: ubuntu:20.04
     strategy:
       matrix:
-        ext: ["", -gpl]
+        ext: [""]
     steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-ubuntu@actions
+      - name: Prepare focal container
+        shell: bash
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          apt-get update || {
+            echo "focal has been archived, switching to old-releases"
+            sed -i 's|//archive.ubuntu.com|//old-releases.ubuntu.com|g; s|//security.ubuntu.com|//old-releases.ubuntu.com|g' /etc/apt/sources.list
+            apt-get update
+          }
+          apt-get -y install ca-certificates
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-ubuntu@ffmpeg-8.1.2
   macosx-arm64:
     runs-on: macos-15-intel
     strategy:
       matrix:
-        ext: ["", -gpl]
+        ext: [""]
     steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-macosx@ffmpeg-8.1.2
   macosx-x86_64:
     runs-on: macos-15-intel
     strategy:
       matrix:
-        ext: ["", -gpl]
+        ext: [""]
     steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-macosx@actions
-#  windows-x86:
-#    runs-on: windows-2022
-#    strategy:
-#      matrix:
-#        ext: ["", -gpl]
-#    steps:
-#      - uses: bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-macosx@ffmpeg-8.1.2
+  windows-x86:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        ext: [""]
+    steps:
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-windows@ffmpeg-8.1.2
   windows-x86_64:
     runs-on: windows-2022
     strategy:
       matrix:
-        ext: ["", -gpl]
+        ext: [""]
     steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
+      - uses: streamingdv/javacpp-presets/.github/actions/deploy-windows@ffmpeg-8.1.2
   platform:
-#    needs: [android-arm, android-arm64, android-x86, android-x86_64, linux-armhf, linux-arm64, linux-ppc64le, linux-x86, linux-x86_64, macosx-arm64, macosx-x86_64, windows-x86, windows-x86_64]
-    needs: [android-arm64, android-x86_64, linux-arm64, linux-x86_64, macosx-arm64, macosx-x86_64, windows-x86_64]
+    needs: [linux-x86_64, macosx-arm64, macosx-x86_64, windows-x86, windows-x86_64]
     runs-on: ubuntu-22.04
     steps:
-      - uses: bytedeco/javacpp-presets/.github/actions/redeploy@actions
+      - uses: streamingdv/javacpp-presets/.github/actions/redeploy@ffmpeg-8.1.2

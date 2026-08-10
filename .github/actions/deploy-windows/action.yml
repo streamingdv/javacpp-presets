@@ -345,6 +345,20 @@ runs:
         df -h
         powershell "Get-CimInstance Win32_PageFileUsage | Select-Object * | Format-List"
 
+    - name: Collect artifacts
+      shell: bash
+      run: |
+        mkdir -p "$GITHUB_WORKSPACE/artifacts"
+        find "$USERPROFILE/.m2/repository/org/bytedeco" -name '*.jar' -exec cp -v {} "$GITHUB_WORKSPACE/artifacts/" \;
+        ls -l "$GITHUB_WORKSPACE/artifacts"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.CI_DEPLOY_MODULE }}-${{ env.CI_DEPLOY_PLATFORM }}${{ matrix.ext }}
+        path: ${{ github.workspace }}/artifacts
+        if-no-files-found: error
+
     - name: Clean up
       shell: cmd
       run: |

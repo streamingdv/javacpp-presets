@@ -119,8 +119,14 @@ runs:
         # $SUDO echo deb [arch=amd64] http://ppa.launchpad.net/deadsnakes/ppa/ubuntu $CODENAME main | $SUDO tee -a /etc/apt/sources.list
         # $SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys EB9B1D8886F44E2A
         # $SUDO apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
+        # focal only ships the versioned name of this one
+        FONTCONFIG_DEV=libfontconfig-dev
+        if [[ "$CODENAME" == "focal" ]]; then
+          FONTCONFIG_DEV=libfontconfig1-dev
+        fi
+
         $SUDO apt-get update
-        $SUDO apt-get -y install python3 python3-minimal rpm libasound2-dev:$ARCH freeglut3-dev:$ARCH libfontconfig-dev:$ARCH libgtk2.0-dev:$ARCH libusb-dev:$ARCH libusb-1.0-0-dev:$ARCH libffi-dev:$ARCH libbz2-dev:$ARCH zlib1g-dev:$ARCH libxcb1-dev:$ARCH libpulse-dev:$ARCH libva-dev:$ARCH libdrm-dev:$ARCH
+        $SUDO apt-get -y install python3 python3-minimal rpm libasound2-dev:$ARCH freeglut3-dev:$ARCH $FONTCONFIG_DEV:$ARCH libgtk2.0-dev:$ARCH libusb-dev:$ARCH libusb-1.0-0-dev:$ARCH libffi-dev:$ARCH libbz2-dev:$ARCH zlib1g-dev:$ARCH libxcb1-dev:$ARCH libpulse-dev:$ARCH libva-dev:$ARCH libdrm-dev:$ARCH
         $SUDO apt-get -y install build-essential pkgconf ccache clang $TOOLCHAIN openjdk-8-jdk ant python3-pip swig git file wget zstd unzip tar bzip2 gzip patch autoconf-archive autogen automake cmake make ninja-build libtool bison flex perl nasm ragel curl libcurl4-openssl-dev libssl-dev libffi-dev libbz2-dev zlib1g-dev rapidjson-dev libdrm-dev
 
         export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-$HOST_ARCH/
@@ -357,6 +363,20 @@ runs:
           for i in {1..5}; do STATUS=0; mvn $MAVEN_OPTIONS -f=$CI_DEPLOY_MODULE/$FILE -P=$PROFILE && break || STATUS=$? && sleep 60; done; (exit $STATUS)
         fi
         df -h
+
+    - name: Collect artifacts
+      shell: bash
+      run: |
+        mkdir -p "$GITHUB_WORKSPACE/artifacts"
+        find $HOME/.m2/repository/org/bytedeco -name '*.jar' -exec cp -v {} "$GITHUB_WORKSPACE/artifacts/" \;
+        ls -l "$GITHUB_WORKSPACE/artifacts"
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.CI_DEPLOY_MODULE }}-${{ env.CI_DEPLOY_PLATFORM }}${{ matrix.ext }}
+        path: ${{ github.workspace }}/artifacts
+        if-no-files-found: error
 
     - name: Clean up
       shell: bash
