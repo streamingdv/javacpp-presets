@@ -53,7 +53,7 @@ ZIMG_VERSION=3.0.6
 FFMPEG_VERSION=8.1.2
 
 download https://www.nasm.us/pub/nasm/releasebuilds/$NASM_VERSION/nasm-$NASM_VERSION.tar.gz nasm-$NASM_VERSION.tar.gz
-download https://zlib.net/$ZLIB.tar.gz $ZLIB.tar.gz
+download https://github.com/madler/zlib/releases/download/v${ZLIB#zlib-}/$ZLIB.tar.gz $ZLIB.tar.gz
 download https://downloads.sourceforge.net/project/lame/lame/3.100/$LAME.tar.gz $LAME.tar.gz
 download https://ftp.osuosl.org/pub/xiph/releases/speex/$SPEEX.tar.gz $SPEEX.tar.gz
 download https://archive.mozilla.org/pub/opus/$OPUS.tar.gz $OPUS.tar.gz
@@ -1091,7 +1091,8 @@ EOF
         make -j $MAKEJ
         make install
         cd ../libwebp-$WEBP_VERSION
-        CC="gcc -m64 -fPIC" CXX="g++ -m64 -fPIC" CFLAGS="-I$INSTALL_PATH/include/" CXXFLAGS="-I$INSTALL_PATH/include/" LDFLAGS="-L$INSTALL_PATH/lib/" $CMAKE -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $WEBP_CONFIG .
+        # libwebp's AVX2 paths need intrinsics that only exist from GCC 11 on, and we build against GCC 9 to keep the Ubuntu 20.04 floor
+        CC="gcc -m64 -fPIC" CXX="g++ -m64 -fPIC" CFLAGS="-I$INSTALL_PATH/include/" CXXFLAGS="-I$INSTALL_PATH/include/" LDFLAGS="-L$INSTALL_PATH/lib/" $CMAKE -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH $WEBP_CONFIG -DWEBP_ENABLE_SIMD=OFF .
         make -j $MAKEJ V=0
         make install
         cd ../freetype-$FREETYPE_VERSION

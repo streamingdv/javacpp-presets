@@ -126,26 +126,29 @@ function download {
     mkdir -p "$TOP_PATH/downloads"
     if [[ ! -e "$TOP_PATH/downloads/$2" ]]; then
         echo "Downloading $1"
-        curl -L "$1" -o "$TOP_PATH/downloads/$2" --fail
-        DOWNLOADSTATUS=$?
-        if [ "$DOWNLOADSTATUS" -eq 28 ]
-        then
-		echo "Download timed out, waiting 5 minutes then trying again"
-		rm "$TOP_PATH/downloads/$2"
-		sleep 600
-        	curl -L "$1" -o "$TOP_PATH/downloads/$2" --fail
-        	if [ $? -ne 0 ]
-        	then
-			echo "File still could not be downloaded!"
-			rm "$TOP_PATH/downloads/$2"
-			exit 1
-    		fi
-        elif [ "$DOWNLOADSTATUS" -ne 0 ]
-        then
-		echo "File could not be downloaded!"
-		rm "$TOP_PATH/downloads/$2"
-		exit 1
-        fi
+        for ATTEMPT in 1 2 3
+        do
+            curl -L "$1" -o "$TOP_PATH/downloads/$2" --fail --retry 3 --retry-delay 15 --retry-connrefused
+            DOWNLOADSTATUS=$?
+            # Mirrors under load answer 200 with an error page, which --fail cannot detect
+            if [ "$DOWNLOADSTATUS" -eq 0 ] && head -c 1024 "$TOP_PATH/downloads/$2" | grep -qi "<html\|<!doctype html"
+            then
+                echo "Received an HTML page instead of $2"
+                DOWNLOADSTATUS=1
+            fi
+            if [ "$DOWNLOADSTATUS" -eq 0 ]
+            then
+                break
+            fi
+            rm -f "$TOP_PATH/downloads/$2"
+            if [ "$ATTEMPT" -eq 3 ]
+            then
+                echo "File could not be downloaded!"
+                exit 1
+            fi
+            echo "Download of $2 failed, waiting 60 seconds then trying again"
+            sleep 60
+        done
     fi
     ln -sf "$TOP_PATH/downloads/$2" "$2"
 }
