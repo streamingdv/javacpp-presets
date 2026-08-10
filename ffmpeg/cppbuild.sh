@@ -1967,7 +1967,10 @@ EOF
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
         patch -Np1 < ../../../ffmpeg-macosx.patch
-        LDEXEFLAGS='-Wl,-rpath,@loader_path/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-pthreads --enable-indev=avfoundation --disable-libxcb --cc="clang -arch arm64" --cxx="clang++ -arch arm64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -ldl -lz -lm" --enable-cross-compile --arch=arm64 --target-os=darwin || cat ffbuild/config.log
+        # -dead_strip_dylibs drops dylibs no symbol is used from. Without it a stray -latomic from a
+        # dependency's pkg-config file leaves a hard link on the runner's Homebrew libatomic, which is
+        # built for the runner's macOS and would then refuse to load on our oldest supported mac.
+        LDEXEFLAGS='-Wl,-rpath,@loader_path/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-pthreads --enable-indev=avfoundation --disable-libxcb --cc="clang -arch arm64" --cxx="clang++ -arch arm64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/ -Wl,-dead_strip_dylibs" --extra-libs="-lstdc++ -ldl -lz -lm" --enable-cross-compile --arch=arm64 --target-os=darwin || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;
@@ -2107,7 +2110,8 @@ EOF
         cd ..
         cd ../ffmpeg-$FFMPEG_VERSION
         patch -Np1 < ../../../ffmpeg-macosx.patch
-        LDEXEFLAGS='-Wl,-rpath,@loader_path/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-pthreads --enable-indev=avfoundation --disable-libxcb --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -ldl -lz -lm" || cat ffbuild/config.log
+        # See the arm64 build above for why -dead_strip_dylibs is needed here.
+        LDEXEFLAGS='-Wl,-rpath,@loader_path/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-pthreads --enable-indev=avfoundation --disable-libxcb --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/ -Wl,-dead_strip_dylibs" --extra-libs="-lstdc++ -ldl -lz -lm" || cat ffbuild/config.log
         make -j $MAKEJ
         make install
         ;;

@@ -65,9 +65,8 @@ import org.bytedeco.javacpp.tools.InfoMapper;
             link = "avutil@.60", compiler = {"default", "nodeprecated"}),
         @Platform(value = "linux-x86", preload = {"va@.2", "drm@.2", "va-drm@.2"}, preloadpath = {"/usr/lib32/", "/usr/lib/"}),
         @Platform(value = "linux-x86_64", preloadpath = {"/usr/lib64/", "/usr/lib/"}),
-        @Platform(value = "macosx", preload = {"atomic@.1"},
-                                    preloadpath = {"/usr/local/lib/gcc/13/", "/usr/local/lib/gcc/12/", "/usr/local/lib/gcc/11/", "/usr/local/lib/gcc/10/", "/usr/local/lib/gcc/9/",
-                                                   "/usr/local/lib/gcc/8/", "/usr/local/lib/gcc/7/", "/usr/local/lib/gcc/6/", "/usr/local/lib/gcc/5/"}),
+        // No libatomic preload on macOS: the libraries do not need it, and copying it out of the
+        // runner's Homebrew GCC pulls in a dylib built for the runner's macOS version.
         @Platform(value = "windows", includepath = {"C:/MinGW/local/include/ffmpeg/", "C:/MinGW/include/ffmpeg/"}, preload = {"libwinpthread-1", "avutil-60"}),
         @Platform(extension = "-gpl")
     }
