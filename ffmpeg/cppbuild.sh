@@ -1146,8 +1146,12 @@ EOF
             # This copy exists only to be the fallback bundled in the jar: libva looks up the
             # driver entry point by probing downwards from its own minor version, so a bundled
             # libva older than the installed Mesa can never load it.
+            # driverdir defaults to the prefix, which is this build directory and therefore gone at
+            # runtime. libva walks the value with the same colon separated search it applies to
+            # LIBVA_DRIVERS_PATH, so the per distribution driver locations belong here.
+            VA_DRIVER_DIRS=/usr/lib64/dri-nonfree:/usr/lib64/dri-freeworld:/usr/lib64/dri:/usr/lib64/va/drivers:/usr/lib/x86_64-linux-gnu/dri:/usr/lib/dri:/usr/lib/va/drivers
             cd ../libva-$LIBVA_VERSION
-            meson setup build --prefix=$INSTALL_PATH --libdir=lib --buildtype=release -Dwith_x11=no -Dwith_glx=no -Dwith_wayland=no -Denable_docs=false
+            meson setup build --prefix=$INSTALL_PATH --libdir=lib --buildtype=release -Ddriverdir="$VA_DRIVER_DIRS" -Dwith_x11=no -Dwith_glx=no -Dwith_wayland=no -Denable_docs=false
             meson compile -C build
             meson install -C build
             cd ..
