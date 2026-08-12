@@ -43,6 +43,7 @@ ALSA_VERSION=1.2.16.1
 FREETYPE_VERSION=2.14.3
 HARFBUZZ_VERSION=14.3.0
 MFX_VERSION=1.35.1
+LIBVA_VERSION=2.24.1
 NVCODEC_VERSION=13.1.15.0
 XML2=libxml2-2.9.12
 LIBSRT_VERSION=1.5.6
@@ -68,6 +69,7 @@ download https://ftp.osuosl.org/pub/blfs/conglomeration/alsa-lib/alsa-lib-$ALSA_
 download https://ftp.osuosl.org/pub/blfs/conglomeration/freetype/freetype-$FREETYPE_VERSION.tar.xz freetype-$FREETYPE_VERSION.tar.xz
 download https://github.com/harfbuzz/harfbuzz/archive/refs/tags/$HARFBUZZ_VERSION.tar.gz harfbuzz-$HARFBUZZ_VERSION.tar.gz
 download https://github.com/lu-zero/mfx_dispatch/archive/$MFX_VERSION.tar.gz mfx_dispatch-$MFX_VERSION.tar.gz
+download https://github.com/intel/libva/archive/refs/tags/$LIBVA_VERSION.tar.gz libva-$LIBVA_VERSION.tar.gz
 download https://github.com/FFmpeg/nv-codec-headers/archive/n$NVCODEC_VERSION.tar.gz nv-codec-headers-$NVCODEC_VERSION.tar.gz
 download http://xmlsoft.org/sources/$XML2.tar.gz $XML2.tar.gz
 download https://github.com/Haivision/srt/archive/refs/tags/v$LIBSRT_VERSION.tar.gz srt-$LIBSRT_VERSION.tar.gz
@@ -97,6 +99,7 @@ tar --totals -xzf ../libvpx-$VPX_VERSION.tar.gz
 tar --totals -xJf ../freetype-$FREETYPE_VERSION.tar.xz
 tar --totals -xzf ../harfbuzz-$HARFBUZZ_VERSION.tar.gz
 tar --totals -xzf ../mfx_dispatch-$MFX_VERSION.tar.gz
+tar --totals -xzf ../libva-$LIBVA_VERSION.tar.gz
 tar --totals -xzf ../nv-codec-headers-$NVCODEC_VERSION.tar.gz
 tar --totals -xzf ../$XML2.tar.gz
 tar --totals -xzf ../libwebp-$WEBP_VERSION.tar.gz
@@ -1136,6 +1139,19 @@ EOF
         LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $ENABLE_VULKAN --enable-libdrm --enable-cuda --enable-cuvid --enable-nvenc --enable-pthreads --enable-libxcb --enable-libpulse --cc="gcc -m64" --cxx="g++ -m64" --extra-cflags="-I../include/ -I../include/libxml2 -I../include/mfx -I../include/svt-av1" --extra-ldflags="-L../lib/" --extra-libs="-lstdc++ -lpthread -ldl -lz -lm $LIBS" || cat ffbuild/config.log
         make -j $MAKEJ
         make install
+        if [[ ! -z "$LIBS" ]]; then
+            # Deliberately built after FFmpeg, and never added to its include or library path.
+            # FFmpeg has to compile against the distribution's libva-dev so that libavutil keeps
+            # referencing the old symbol set and stays loadable next to an older system libva.
+            # This copy exists only to be the fallback bundled in the jar: libva looks up the
+            # driver entry point by probing downwards from its own minor version, so a bundled
+            # libva older than the installed Mesa can never load it.
+            cd ../libva-$LIBVA_VERSION
+            meson setup build --prefix=$INSTALL_PATH --libdir=lib --buildtype=release -Dwith_x11=no -Dwith_glx=no -Dwith_wayland=no -Denable_docs=false
+            meson compile -C build
+            meson install -C build
+            cd ..
+        fi
         ;;
 
     linux-armhf)
