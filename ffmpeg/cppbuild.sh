@@ -114,6 +114,11 @@ tar --totals -xzf ../ffmpeg-$FFMPEG_VERSION.tar.gz
 if [[ -d FFmpeg-n$FFMPEG_VERSION && ! -d ffmpeg-$FFMPEG_VERSION ]]; then
     mv FFmpeg-n$FFMPEG_VERSION ffmpeg-$FFMPEG_VERSION
 fi
+# Official tarballs ship VERSION; the GitHub tag archive does not. version.sh prefers
+# `git describe`, and this tree sits inside javacpp-presets, so without VERSION the
+# binaries report a presets revision (seen as FFMPEG_VERSION=6148317) instead of 8.1.2.
+echo "$FFMPEG_VERSION" > ffmpeg-$FFMPEG_VERSION/VERSION
+echo "$FFMPEG_VERSION" > ffmpeg-$FFMPEG_VERSION/RELEASE
 
 if [[ "${ACLOCAL_PATH:-}" == C:\\msys64\\* ]]; then
     export ACLOCAL_PATH=/mingw64/share/aclocal:/usr/share/aclocal
