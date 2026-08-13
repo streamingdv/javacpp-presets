@@ -244,7 +244,7 @@ case $PLATFORM in
         $CMAKE ../../../source -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=24 -DEXTRA_LIB="x265_main10.a;x265_main12.a" -DEXTRA_LINK_FLAGS=-L. -DLINKED_10BIT=ON -DLINKED_12BIT=ON -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH -DENABLE_SHARED:BOOL=OFF -DENABLE_LIBNUMA=OFF -DCMAKE_BUILD_TYPE=Release -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=OFF
         make -j $MAKEJ
 
-        # rename the 8bit library, then combine all three into libx265.a
+        # rename the 8bit library, then combine all into libx265.a
         mv libx265.a libx265_main.a
 ar -M <<EOF
 CREATE libx265.a
