@@ -54,7 +54,7 @@ ZIMG_VERSION=3.0.6
 FFMPEG_VERSION=8.1.2
 
 download https://www.nasm.us/pub/nasm/releasebuilds/$NASM_VERSION/nasm-$NASM_VERSION.tar.gz nasm-$NASM_VERSION.tar.gz
-download https://github.com/madler/zlib/releases/download/v${ZLIB#zlib-}/$ZLIB.tar.gz $ZLIB.tar.gz
+download https://github.com/madler/zlib/releases/download/v${ZLIB#zlib-}/$ZLIB.tar.gz https://zlib.net/$ZLIB.tar.gz $ZLIB.tar.gz
 download https://downloads.sourceforge.net/project/lame/lame/3.100/$LAME.tar.gz $LAME.tar.gz
 download https://ftp.osuosl.org/pub/xiph/releases/speex/$SPEEX.tar.gz $SPEEX.tar.gz
 download https://archive.mozilla.org/pub/opus/$OPUS.tar.gz $OPUS.tar.gz
@@ -77,7 +77,10 @@ download https://github.com/webmproject/libwebp/archive/refs/tags/v$WEBP_VERSION
 download https://storage.googleapis.com/aom-releases/libaom-$AOMAV1_VERSION.tar.gz aom-$AOMAV1_VERSION.tar.gz
 download https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-AV1-v$SVTAV1_VERSION.tar.gz SVT-AV1-$SVTAV1_VERSION.tar.gz
 download https://github.com/sekrit-twc/zimg/archive/refs/tags/release-$ZIMG_VERSION.tar.gz zimg-release-$ZIMG_VERSION.tar.gz
-download https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2 ffmpeg-$FFMPEG_VERSION.tar.bz2
+# GitHub first: ffmpeg.org is frequently unreachable from GitHub Actions, and the tag
+# archive is the same snapshot as the official tarball. The official gzip is kept as a
+# fallback so a local build still works if GitHub is the one that flakes.
+download https://github.com/FFmpeg/FFmpeg/archive/refs/tags/n$FFMPEG_VERSION.tar.gz https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.gz ffmpeg-$FFMPEG_VERSION.tar.gz
 
 mkdir -p $PLATFORM$EXTENSION
 cd $PLATFORM$EXTENSION
@@ -106,7 +109,11 @@ tar --totals -xzf ../libwebp-$WEBP_VERSION.tar.gz
 tar --totals -xzf ../aom-$AOMAV1_VERSION.tar.gz
 tar --totals -xzf ../SVT-AV1-$SVTAV1_VERSION.tar.gz
 tar --totals -xzf ../zimg-release-$ZIMG_VERSION.tar.gz
-tar --totals -xjf ../ffmpeg-$FFMPEG_VERSION.tar.bz2
+tar --totals -xzf ../ffmpeg-$FFMPEG_VERSION.tar.gz
+# GitHub's tag archive unpacks as FFmpeg-nX.Y.Z; the official tarball as ffmpeg-X.Y.Z.
+if [[ -d FFmpeg-n$FFMPEG_VERSION && ! -d ffmpeg-$FFMPEG_VERSION ]]; then
+    mv FFmpeg-n$FFMPEG_VERSION ffmpeg-$FFMPEG_VERSION
+fi
 
 if [[ "${ACLOCAL_PATH:-}" == C:\\msys64\\* ]]; then
     export ACLOCAL_PATH=/mingw64/share/aclocal:/usr/share/aclocal
@@ -244,7 +251,7 @@ case $PLATFORM in
         $CMAKE ../../../source -DCMAKE_TOOLCHAIN_FILE=${PLATFORM_ROOT}/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_NATIVE_API_LEVEL=24 -DEXTRA_LIB="x265_main10.a;x265_main12.a" -DEXTRA_LINK_FLAGS=-L. -DLINKED_10BIT=ON -DLINKED_12BIT=ON -DCMAKE_INSTALL_PREFIX=$INSTALL_PATH -DENABLE_SHARED:BOOL=OFF -DENABLE_LIBNUMA=OFF -DCMAKE_BUILD_TYPE=Release -DENABLE_CLI=OFF -DENABLE_ASSEMBLY=OFF
         make -j $MAKEJ
 
-        # rename the 8bit library, then combine all into libx265.a
+        # rename the 8bit library, then combine all three into libx265.a
         mv libx265.a libx265_main.a
 ar -M <<EOF
 CREATE libx265.a

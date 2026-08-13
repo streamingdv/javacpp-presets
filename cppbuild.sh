@@ -124,33 +124,48 @@ TOP_PATH=`pwd`
 
 function download {
     mkdir -p "$TOP_PATH/downloads"
-    if [[ ! -e "$TOP_PATH/downloads/$2" ]]; then
-        echo "Downloading $1"
-        for ATTEMPT in 1 2 3
-        do
-            curl -L "$1" -o "$TOP_PATH/downloads/$2" --fail --retry 3 --retry-delay 15 --retry-connrefused
-            DOWNLOADSTATUS=$?
-            # Mirrors under load answer 200 with an error page, which --fail cannot detect
-            if [ "$DOWNLOADSTATUS" -eq 0 ] && head -c 1024 "$TOP_PATH/downloads/$2" | grep -qi "<html\|<!doctype html"
-            then
-                echo "Received an HTML page instead of $2"
-                DOWNLOADSTATUS=1
-            fi
-            if [ "$DOWNLOADSTATUS" -eq 0 ]
-            then
-                break
-            fi
-            rm -f "$TOP_PATH/downloads/$2"
-            if [ "$ATTEMPT" -eq 3 ]
-            then
-                echo "File could not be downloaded!"
-                exit 1
-            fi
-            echo "Download of $2 failed, waiting 60 seconds then trying again"
-            sleep 60
+    # Last argument is the destination filename; everything before it is a URL to try in
+    # order. Extra URLs are optional so existing `download URL file` call sites stay valid.
+    local FILENAME="${@: -1}"
+    local URLS=("${@:1:$#-1}")
+    if [[ ! -e "$TOP_PATH/downloads/$FILENAME" ]]; then
+        local DOWNLOADSTATUS=1
+        local URL
+        for URL in "${URLS[@]}"; do
+            echo "Downloading $URL"
+            for ATTEMPT in 1 2 3
+            do
+                # set -e would otherwise abort here, which made the retry loop below dead:
+                # a single curl 52/28/35 exited the whole script before DOWNLOADSTATUS was
+                # assigned, so ffmpeg.org timeouts never reached the 60s wait or a mirror.
+                DOWNLOADSTATUS=0
+                curl -L "$URL" -o "$TOP_PATH/downloads/$FILENAME" --fail --retry 3 --retry-delay 15 --retry-connrefused --connect-timeout 20 --max-time 300 || DOWNLOADSTATUS=$?
+                # Mirrors under load answer 200 with an error page, which --fail cannot detect
+                if [ "$DOWNLOADSTATUS" -eq 0 ] && head -c 1024 "$TOP_PATH/downloads/$FILENAME" | grep -qi "<html\|<!doctype html"
+                then
+                    echo "Received an HTML page instead of $FILENAME"
+                    DOWNLOADSTATUS=1
+                fi
+                if [ "$DOWNLOADSTATUS" -eq 0 ]
+                then
+                    break 2
+                fi
+                rm -f "$TOP_PATH/downloads/$FILENAME"
+                if [ "$ATTEMPT" -eq 3 ]
+                then
+                    break
+                fi
+                echo "Download of $FILENAME failed, waiting 60 seconds then trying again"
+                sleep 60
+            done
         done
+        if [ "$DOWNLOADSTATUS" -ne 0 ]
+        then
+            echo "File could not be downloaded!"
+            exit 1
+        fi
     fi
-    ln -sf "$TOP_PATH/downloads/$2" "$2"
+    ln -sf "$TOP_PATH/downloads/$FILENAME" "$FILENAME"
 }
 
 function sedinplace {
