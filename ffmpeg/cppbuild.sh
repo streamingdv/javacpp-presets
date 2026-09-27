@@ -268,7 +268,7 @@ SAVE
 END
 EOF
         make install
-        # -----
+        # ----
         cd ../../../
         cd ../libvpx-$VPX_VERSION
         patch -Np1 < ../../../libvpx-android.patch
