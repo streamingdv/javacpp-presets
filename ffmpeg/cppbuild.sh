@@ -51,7 +51,7 @@ WEBP_VERSION=1.6.0
 AOMAV1_VERSION=3.14.1
 SVTAV1_VERSION=4.2.0
 ZIMG_VERSION=3.0.6
-FFMPEG_VERSION=8.1.2
+FFMPEG_VERSION=8.1.3
 
 download https://www.nasm.us/pub/nasm/releasebuilds/$NASM_VERSION/nasm-$NASM_VERSION.tar.gz nasm-$NASM_VERSION.tar.gz
 download https://github.com/madler/zlib/releases/download/v${ZLIB#zlib-}/$ZLIB.tar.gz https://zlib.net/$ZLIB.tar.gz $ZLIB.tar.gz
@@ -116,7 +116,7 @@ if [[ -d FFmpeg-n$FFMPEG_VERSION && ! -d ffmpeg-$FFMPEG_VERSION ]]; then
 fi
 # Official tarballs ship VERSION; the GitHub tag archive does not. version.sh prefers
 # `git describe`, and this tree sits inside javacpp-presets, so without VERSION the
-# binaries report a presets revision (seen as FFMPEG_VERSION=6148317) instead of 8.1.2.
+# binaries report a presets revision (seen as FFMPEG_VERSION=6148317) instead of the release.
 echo "$FFMPEG_VERSION" > ffmpeg-$FFMPEG_VERSION/VERSION
 echo "$FFMPEG_VERSION" > ffmpeg-$FFMPEG_VERSION/RELEASE
 
