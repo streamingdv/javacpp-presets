@@ -1,0 +1,57 @@
+Create the images a Vulkan video decoder writes without storage, transfer
+destination and host transfer usage, the way FFmpeg 6.1 and 7.0 created them.
+With that usage, Intel's Windows driver loses the device as soon as decoding
+starts on a Vulkan 1.4 device (seen on Meteor Lake with driver 101.8509, HEVC).
+The images keep transfer source and sampled usage, which is what rendering and
+downloading them needs.
+
+diff --git a/libavcodec/vulkan_decode.c b/libavcodec/vulkan_decode.c
+index 9ab8d45..9dc84a8 100644
+--- a/libavcodec/vulkan_decode.c
++++ b/libavcodec/vulkan_decode.c
+@@ -1225,6 +1225,9 @@ int ff_vk_frame_params(AVCodecContext *avctx, AVBufferRef *hw_frames_ctx)
+     if (prof) {
+         FFVulkanDecodeShared *ctx;
+ 
++        /* Storage usage on the images the decoder writes makes Intel's
++         * Windows driver lose the device as soon as decoding starts. */
++        hwfc->usage &= ~VK_IMAGE_USAGE_STORAGE_BIT;
+         hwfc->usage |= VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR;
+         if (!dec->dedicated_dpb)
+             hwfc->usage |= VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR;
+diff --git a/libavutil/hwcontext_vulkan.c b/libavutil/hwcontext_vulkan.c
+index 65e2256..ab65922 100644
+--- a/libavutil/hwcontext_vulkan.c
++++ b/libavutil/hwcontext_vulkan.c
+@@ -2991,6 +2991,10 @@ static int vulkan_frames_init(AVHWFramesContext *hwfc)
+     int is_lone_dpb = ((hwctx->usage & VK_IMAGE_USAGE_VIDEO_ENCODE_DPB_BIT_KHR) ||
+                        ((hwctx->usage & VK_IMAGE_USAGE_VIDEO_DECODE_DPB_BIT_KHR) &&
+                         !(hwctx->usage & VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR)));
++    /* Storage, transfer destination or host transfer usage on the images a
++     * video decoder writes makes Intel's Windows driver lose the device as
++     * soon as decoding starts, so they keep the usage that was asked for. */
++    int is_decode_dst = !!(hwctx->usage & VK_IMAGE_USAGE_VIDEO_DECODE_DST_BIT_KHR);
+ 
+     /* Defaults */
+     if (!hwctx->nb_layers)
+@@ -3046,12 +3050,14 @@ static int vulkan_frames_init(AVHWFramesContext *hwfc)
+     /* Lone DPB images do not need additional flags. */
+     if (!is_lone_dpb) {
+         /* Image usage flags */
+-        hwctx->usage |= supported_usage & (VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+-                                           VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+-                                           VK_IMAGE_USAGE_STORAGE_BIT      |
+-                                           VK_IMAGE_USAGE_SAMPLED_BIT);
+-
+-        if (p->vkctx.extensions & FF_VK_EXT_HOST_IMAGE_COPY &&
++        if (!is_decode_dst)
++            hwctx->usage |= supported_usage & (VK_IMAGE_USAGE_TRANSFER_DST_BIT |
++                                               VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
++                                               VK_IMAGE_USAGE_STORAGE_BIT      |
++                                               VK_IMAGE_USAGE_SAMPLED_BIT);
++
++        if (!is_decode_dst &&
++            p->vkctx.extensions & FF_VK_EXT_HOST_IMAGE_COPY &&
+             !(p->dprops.driverID == VK_DRIVER_ID_NVIDIA_PROPRIETARY) &&
+             !(p->dprops.driverID == VK_DRIVER_ID_MOLTENVK))
+             hwctx->usage |= supported_usage & VK_IMAGE_USAGE_HOST_TRANSFER_BIT_EXT;

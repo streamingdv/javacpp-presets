@@ -1,0 +1,32 @@
+Skip vkBindVideoSessionMemoryKHR when the driver reports no memory bindings for
+the video session. Intel's Windows driver reports none, and calling the bind with
+a count of zero is invalid usage
+(VUID-vkBindVideoSessionMemoryKHR-bindSessionMemoryInfoCount-arraylength), see
+https://github.com/mpv-player/mpv/issues/17894.
+
+diff --git a/libavcodec/vulkan_video.c b/libavcodec/vulkan_video.c
+index 674a0fd..55db6e1 100644
+--- a/libavcodec/vulkan_video.c
++++ b/libavcodec/vulkan_video.c
+@@ -443,12 +443,15 @@ av_cold int ff_vk_video_common_init(AVCodecContext *avctx, FFVulkanContext *s,
+                bind_mem[i].memorySize, bind_mem[i].memoryBindIndex);
+     }
+ 
+-    /* Bind the allocated memory */
+-    ret = vk->BindVideoSessionMemoryKHR(s->hwctx->act_dev, common->session,
+-                                        common->nb_mem, bind_mem);
+-    if (ret != VK_SUCCESS) {
+-        err = AVERROR_EXTERNAL;
+-        goto fail;
++    /* Bind the allocated memory. A driver may need none, and binding zero
++     * allocations is invalid. */
++    if (common->nb_mem) {
++        ret = vk->BindVideoSessionMemoryKHR(s->hwctx->act_dev, common->session,
++                                            common->nb_mem, bind_mem);
++        if (ret != VK_SUCCESS) {
++            err = AVERROR_EXTERNAL;
++            goto fail;
++        }
+     }
+ 
+     av_freep(&mem);
